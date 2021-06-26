@@ -135,6 +135,7 @@ router.get('/deliveryman/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbdeliveryman = await Deliveryman.findOne({ where: {id: req.params.id} });
+    console.log(dbdeliveryman)
     if (dbdeliveryman.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     try {resultats = await axios.get(pathaccount+'/account/deliveryman/'+req.params.id, {headers: {'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
