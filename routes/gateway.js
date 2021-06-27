@@ -30,7 +30,19 @@ const pathboard = "http://localhost:3004/api"   //Board API
 //Login user
 router.post('/login', async function(req, res){
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathauth+'/auth/login', req.body, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
+    try {
+        resultats = await axios.post(pathauth+'/auth/login', req.body, {headers: {'tokenapp': `${tokenapp}`}}); 
+        try {
+            role = await axios.get(pathaccount+'/account/getrole/'+resultats.data.userId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${resultats.data.token}`}});
+            let result = {
+                userId:resultats.data.userId,
+                token:resultats.data.token,
+                role:role.data
+            }
+            console.log(result)
+        res.status(200).send(result);
+        } catch (error) {console.log(error)}
+    }
     catch (error) {res.status(400).send("error");}
 });
 //Logout user
@@ -38,7 +50,7 @@ router.post('/logout', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
     try {resultats = await axios.post(pathauth+'/auth/logout', req.body, {headers: {'tokenapp': `${tokenapp}` , 'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");}
+    catch (error) {console.log(error); res.status(400).send("error");}
 });
 //Check accesstoken
 router.post('/accesstoken', async function(req, res){
@@ -48,20 +60,21 @@ router.post('/accesstoken', async function(req, res){
     catch (error) {res.status(400).send("error");}
 });
 
-router.post('/dev/login', async function(req, res){
+router.post('/dev-login', async function(req, res){
+    console.log('/dev-login')
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathauth+'/auth/dev/login', req.body, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.post(pathauth+'/auth/dev/login', req.body, {headers: {'tokenapp': `${tokenapp}`}}); console.log(resultats) ;res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");}
 });
 //Logout user
-router.post('/dev/logout', async function(req, res){
+router.post('/dev-logout', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
     try {resultats = await axios.post(pathauth+'/auth/dev/logout', req.body, {headers: {'tokenapp': `${tokenapp}` , 'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");}
 });
 //Check accesstoken
-router.post('/dev/accesstoken', async function(req, res){
+router.post('/dev-accesstoken', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
     try {resultats = await axios.post(pathauth+'/auth/dev/accesstoken', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
@@ -73,22 +86,25 @@ router.post('/dev/accesstoken', async function(req, res){
 
 
 //Account API
+
 //Register user
-router.post('/user', async function(req, res){ 
+router.post('/user', async function(req, res){
+    console.log('/user post') 
     tokenapp = generateTokenApp()
     try {resultats = await axios.post(pathaccount+'/account/user', req.body, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Modify user
-router.put('/user', async function(req, res){
+router.put('/user/:id', async function(req, res){
+    console.log('/user put');
     const accesstoken = req.headers['authorization'].split(" ");
-
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathaccount+'/account/user', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.put(pathaccount+'/account/user/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Delete user YES
 router.delete('/user/:id', async function(req, res){ 
+    console.log('/user delete') 
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     if(userid != req.params.id) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
@@ -97,7 +113,7 @@ router.delete('/user/:id', async function(req, res){
     try {resultats = await axios.delete(pathaccount+'/account/user/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
-//Info user 
+//Info user
 router.get('/user/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
@@ -109,22 +125,34 @@ router.get('/user/:id', async function(req, res){
 });
 //Create restaurant
 router.post('/restaurant', async function(req, res){
+    console.log('/restaurant post') 
     const accesstoken = req.headers['authorization'].split(" ");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathaccount+'/account/restaurant', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
+    try {resultats =
+         await axios.post(pathaccount+'/account/restaurant', req.body, 
+                            {headers: 
+                                {'tokenapp': `${tokenapp}` ,
+                                'Authorization': `${accesstoken[1]}`}
+                                });
+    res.status(200).send(resultats.data)}
+    catch (error) {console.log(error);} 
 });
 //Update restaurant
-router.put('/restaurant', async function(req, res){
+router.put('/restaurant/:id', async function(req, res){
+    console.log('/restaurant put') 
+
     const accesstoken = req.headers['authorization'].split(" ");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathaccount+'/account/restaurant', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
+    try {resultats = await axios.put(pathaccount+'/account/restaurant/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {console.log(error)
+        res.status(400).send("error");} 
 });
 //Delete restaurant
 router.delete('/restaurant/:id', async function(req, res){
+    console.log('/restaurant delete') 
+
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbrestaurant = await Restaurant.findOne({ where: {id: req.params.id} });
@@ -136,6 +164,8 @@ router.delete('/restaurant/:id', async function(req, res){
 });
 //Infos restaurant
 router.get('/restaurant/:id', async function(req, res){
+    console.log('/restaurant get') 
+
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbrestaurant = await Restaurant.findOne({ where: {id: req.params.id} });
@@ -147,22 +177,27 @@ router.get('/restaurant/:id', async function(req, res){
 });
 //Create deliveryman
 router.post('/deliveryman', async function(req, res){
+    console.log('/deliveryman post') 
     const accesstoken = req.headers['authorization'].split(" ");
 
     tokenapp = generateTokenApp()
     try {resultats = await axios.post(pathaccount+'/account/deliveryman', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
+    catch (error) { console.log(error); res.status(400).send("error");} 
 });
 //Update deliveryman
-router.put('/deliveryman', async function(req, res){
+router.put('/deliveryman/:id', async function(req, res){
+    console.log('/deliveryman put')
     const accesstoken = req.headers['authorization'].split(" ");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathaccount+'/account/deliveryman', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
+    try {resultats = await axios.put(pathaccount+'/account/deliveryman/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); 
+    console.log(resultats)
+    res.status(200).send(resultats.data);}
+    catch (error) {console.log(error); res.status(400).send("error");} 
 });
 //Delete deliveryman
 router.delete('/deliveryman/:id', async function(req, res){
+    console.log('/deliveryman delete')
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbdeliveryman = await Deliveryman.findOne({ where: {id: req.params.id} });
@@ -174,6 +209,8 @@ router.delete('/deliveryman/:id', async function(req, res){
 });
 //Infos deliveryman
 router.get('/deliveryman/:id', async function(req, res){
+    console.log('/deliveryman get')
+
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbdeliveryman = await Deliveryman.findOne({ where: {id: req.params.id} });
@@ -186,20 +223,25 @@ router.get('/deliveryman/:id', async function(req, res){
 });
 
 router.post('/dev', async function(req, res){ 
-    tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathaccount+'/account/dev', req.body, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
-});
-//Modify user
-router.put('/dev', async function(req, res){
-    const accesstoken = req.headers['authorization'].split(" ");
+    console.log('/dev post')
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathaccount+'/account/dev', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.post(pathaccount+'/account/dev', req.body, {headers: {'tokenapp': `${tokenapp}`}}); console.log(resultats);res.status(200).send(resultats.data);}
+    catch (error) {console.log(error);res.status(400).send("error");} 
+});
+//Modify user
+router.put('/dev/:id', async function(req, res){
+    console.log('/dev put')
+
+    const accesstoken = req.headers['authorization'].split(" ");
+    tokenapp = generateTokenApp()
+    try {resultats = await axios.put(pathaccount+'/account/dev/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Delete user YES
 router.delete('/dev/:id', async function(req, res){ 
+    console.log('/dev delete')
+
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenDevController(accesstoken[1])
     if(userid != req.params.id) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
@@ -210,13 +252,16 @@ router.delete('/dev/:id', async function(req, res){
 });
 //Delete user YES
 router.get('/dev/:id', async function(req, res){ 
+    console.log('/dev get')
+
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenDevController(accesstoken[1])
+    
     if(userid != req.params.id) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathaccount+'/account/dev/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
+    try {resultats = await axios.get(pathaccount+'/account/dev/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}});console.log(resultats.data); res.status(200).send(resultats.data);}
+    catch (error) {console.log(error);res.status(400).send("error");} 
 });
 
 
@@ -226,6 +271,8 @@ router.get('/dev/:id', async function(req, res){
 //Board API
 //OK
 router.get('/restaurantboard/:restaurantId', async function(req, res){
+    console.log('/restaurantboard get')
+
     const accesstoken = req.headers['authorization'].split(" ");
 
     tokenapp = generateTokenApp()
@@ -234,6 +281,7 @@ router.get('/restaurantboard/:restaurantId', async function(req, res){
 });
 //OK à tester
 router.post('/menu', async function(req, res){
+    console.log('/menu post')
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbrestaurant = await Restaurant.findOne({ where: {userid: userid} });
@@ -246,6 +294,8 @@ router.post('/menu', async function(req, res){
 });
 //OK à tester
 router.put('/menu', async function(req, res){
+    console.log('/menu put')
+
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbmenu = await Menu.findOne({ where: {id: req.body.menuId} });
@@ -258,6 +308,8 @@ router.put('/menu', async function(req, res){
 });
 //OK à tester
 router.delete('/menu/:menuId', async function(req, res){
+    console.log('/menu delete')
+
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbmenu = await Menu.findOne({ where: {id: req.params.menuId} });
@@ -270,6 +322,8 @@ router.delete('/menu/:menuId', async function(req, res){
 });
 //OK à tester
 router.post('/article', async function(req, res){
+    console.log('/article post')
+
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbrestaurant = await Restaurant.findOne({ where: {userid: userid} });
@@ -282,6 +336,8 @@ router.post('/article', async function(req, res){
 });
 //OK à tester
 router.put('/article', async function(req, res){
+    console.log('/article put')
+
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbarticle = await Article.findOne({ where: {id: req.body.articleId} });
@@ -294,6 +350,8 @@ router.put('/article', async function(req, res){
 });
 //OK à tester
 router.delete('/article/:articleId', async function(req, res){
+    console.log('/article delete')
+
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbarticle = await Article.findOne({ where: {id: req.params.articleId} });
@@ -313,6 +371,8 @@ router.delete('/article/:articleId', async function(req, res){
 //Order API
 //OK à tester
 router.put('/orders/statement/validate', async function(req, res){
+    console.log('/orders/statement/validate put')
+
     try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])
@@ -329,6 +389,8 @@ router.put('/orders/statement/validate', async function(req, res){
 });
 //OK à tester
 router.put('/orders/statement/denied', async function(req, res){
+    console.log('/orders/statement/denied put')
+
     try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])
@@ -344,6 +406,8 @@ router.put('/orders/statement/denied', async function(req, res){
 });
 //OK à tester
 router.put('/orders/statement/startingRealization', async function(req, res){
+    console.log('/orders/statement/startingRealization put')
+
     try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])
@@ -359,6 +423,8 @@ router.put('/orders/statement/startingRealization', async function(req, res){
 });
 //OK à tester
 router.put('/orders/statement/waitingdelivery', async function(req, res){
+    console.log('/orders/statement/waitingdelivery put')
+
     try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])
@@ -374,6 +440,8 @@ router.put('/orders/statement/waitingdelivery', async function(req, res){
 });
 //OK à tester
 router.put('/orders/statement/indelivery', async function(req, res){
+    console.log('/orders/statement/indelivery put')
+
     try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])
@@ -389,6 +457,8 @@ router.put('/orders/statement/indelivery', async function(req, res){
 });
 //OK à tester
 router.put('/orders/statement/delivered', async function(req, res){
+    console.log('/orders/statement/delivered put')
+
     try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])

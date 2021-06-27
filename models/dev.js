@@ -7,10 +7,9 @@ var Dev = sequelize.define("Dev", {
         primaryKey: true,
         autoIncrement: true,
     },
-    siret: Sequelize.STRING,
+    companyName: Sequelize.STRING,
     email: Sequelize.STRING,
     password: Sequelize.STRING,
-    userType: Sequelize.STRING, //dev par defaut
     refreshtoken: Sequelize.TEXT
 });
 
