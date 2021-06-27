@@ -17,13 +17,14 @@ router.use(express.json());
 
 //Load token controller
 const {verifTokenController} = require('../controllers/tokenController')
+const {verifTokenDevController} = require('../controllers/tokenDevController')
 const {generateTokenApp} = require('../controllers/tokenAppController');
 const { token } = require('morgan');
 
-const pathaccount = "http://localhost:4000/api"   //Account API
-const pathauth = "http://localhost:3000/api"   //Auth API
-const pathboard = ""   //Board API
-const pathorder = ""   //Order API
+const pathauth = "http://localhost:3001/api"   //Auth API
+const pathaccount = "http://localhost:3002/api"   //Account API
+const pathorder = "http://localhost:3003/api"   //Order API
+const pathboard = "http://localhost:3004/api"   //Board API
 
 //Auth API
 //Login user
@@ -44,6 +45,26 @@ router.post('/accesstoken', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
     try {resultats = await axios.post(pathauth+'/auth/accesstoken', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {res.status(400).send("error");}
+});
+
+router.post('/dev/login', async function(req, res){
+    tokenapp = generateTokenApp()
+    try {resultats = await axios.post(pathauth+'/auth/dev/login', req.body, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
+    catch (error) {res.status(400).send("error");}
+});
+//Logout user
+router.post('/dev/logout', async function(req, res){
+    const accesstoken = req.headers['authorization'].split(" ");
+    tokenapp = generateTokenApp()
+    try {resultats = await axios.post(pathauth+'/auth/dev/logout', req.body, {headers: {'tokenapp': `${tokenapp}` , 'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {res.status(400).send("error");}
+});
+//Check accesstoken
+router.post('/dev/accesstoken', async function(req, res){
+    const accesstoken = req.headers['authorization'].split(" ");
+    tokenapp = generateTokenApp()
+    try {resultats = await axios.post(pathauth+'/auth/dev/accesstoken', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");}
 });
 
@@ -163,15 +184,13 @@ router.get('/deliveryman/:id', async function(req, res){
     try {resultats = await axios.get(pathaccount+'/account/deliveryman/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
-//Create dev
-router.post('/dev', async function(req, res){
-    const accesstoken = req.headers['authorization'].split(" ");
 
+router.post('/dev', async function(req, res){ 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathaccount+'/account/dev', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.post(pathaccount+'/account/dev', req.body, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
-//Update dev
+//Modify user
 router.put('/dev', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
 
@@ -179,26 +198,24 @@ router.put('/dev', async function(req, res){
     try {resultats = await axios.put(pathaccount+'/account/dev', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
-//Delete dev
-router.delete('/dev/:id', async function(req, res){
+//Delete user YES
+router.delete('/dev/:id', async function(req, res){ 
     const accesstoken = req.headers['authorization'].split(" ");
-    const userid = await verifTokenController(accesstoken[1])
-    const dbdev = await Dev.findOne({ where: {id: req.params.id} });
-    if (dbdev.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    const userid = await verifTokenDevController(accesstoken[1])
+    if(userid != req.params.id) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.delete(pathaccount+'/account/dev/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.delete(pathaccount+'/account/dev/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
-//Infos dev
-router.get('/dev/:id', async function(req, res){
+//Delete user YES
+router.get('/dev/:id', async function(req, res){ 
     const accesstoken = req.headers['authorization'].split(" ");
-    const userid = await verifTokenController(accesstoken[1])
-    const dbdev = await Dev.findOne({ where: {id: req.params.id} });
-    if (dbdev.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    const userid = await verifTokenDevController(accesstoken[1])
+    if(userid != req.params.id) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathaccount+'/account/dev/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.get(pathaccount+'/account/dev/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 
@@ -296,10 +313,15 @@ router.delete('/article/:articleId', async function(req, res){
 //Order API
 //OK à tester
 router.put('/orders/statement/validate', async function(req, res){
-    const accesstoken = req.headers['authorization'].split(" ");
-    const userid = await verifTokenController(accesstoken[1])
-    const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-    if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    try {
+        const accesstoken = req.headers['authorization'].split(" ");
+        const userid = await verifTokenController(accesstoken[1])
+        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
+        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    } catch (error) {
+        res.status(200).send("Une erreur à été rencontrée !");
+    }
+    
 
     tokenapp = generateTokenApp()
     try {resultats = await axios.put(pathorder+'/orders/statement/validate/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
@@ -307,10 +329,14 @@ router.put('/orders/statement/validate', async function(req, res){
 });
 //OK à tester
 router.put('/orders/statement/denied', async function(req, res){
-    const accesstoken = req.headers['authorization'].split(" ");
-    const userid = await verifTokenController(accesstoken[1])
-    const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-    if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    try {
+        const accesstoken = req.headers['authorization'].split(" ");
+        const userid = await verifTokenController(accesstoken[1])
+        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
+        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    } catch (error) {
+        res.status(200).send("Une erreur à été rencontrée !");
+    }
 
     tokenapp = generateTokenApp()
     try {resultats = await axios.put(pathorder+'/orders/statement/denied/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
@@ -318,21 +344,29 @@ router.put('/orders/statement/denied', async function(req, res){
 });
 //OK à tester
 router.put('/orders/statement/startingRealization', async function(req, res){
-    const accesstoken = req.headers['authorization'].split(" ");
-    const userid = await verifTokenController(accesstoken[1])
-    const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-    if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-
+    try {
+        const accesstoken = req.headers['authorization'].split(" ");
+        const userid = await verifTokenController(accesstoken[1])
+        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
+        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    } catch (error) {
+        res.status(200).send("Une erreur à été rencontrée !");
+    }
+    
     tokenapp = generateTokenApp()
     try {resultats = await axios.put(pathorder+'/orders/statement/startingRealization/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
 router.put('/orders/statement/waitingdelivery', async function(req, res){
-    const accesstoken = req.headers['authorization'].split(" ");
-    const userid = await verifTokenController(accesstoken[1])
-    const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-    if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    try {
+        const accesstoken = req.headers['authorization'].split(" ");
+        const userid = await verifTokenController(accesstoken[1])
+        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
+        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    } catch (error) {
+        res.status(200).send("Une erreur à été rencontrée !");
+    }
 
     tokenapp = generateTokenApp()
     try {resultats = await axios.put(pathorder+'/orders/statement/waitingdelivery/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
@@ -340,21 +374,29 @@ router.put('/orders/statement/waitingdelivery', async function(req, res){
 });
 //OK à tester
 router.put('/orders/statement/indelivery', async function(req, res){
-    const accesstoken = req.headers['authorization'].split(" ");
-    const userid = await verifTokenController(accesstoken[1])
-    const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-    if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-
+    try {
+        const accesstoken = req.headers['authorization'].split(" ");
+        const userid = await verifTokenController(accesstoken[1])
+        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
+        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    } catch (error) {
+        res.status(200).send("Une erreur à été rencontrée !");
+    }
+    
     tokenapp = generateTokenApp()
     try {resultats = await axios.put(pathorder+'/orders/statement/indelivery', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
 router.put('/orders/statement/delivered', async function(req, res){
-    const accesstoken = req.headers['authorization'].split(" ");
-    const userid = await verifTokenController(accesstoken[1])
-    const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-    if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    try {
+        const accesstoken = req.headers['authorization'].split(" ");
+        const userid = await verifTokenController(accesstoken[1])
+        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
+        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    } catch (error) {
+        res.status(200).send("Une erreur à été rencontrée !");
+    }
 
     tokenapp = generateTokenApp()
     try {resultats = await axios.put(pathorder+'/orders/statement/delivered', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}

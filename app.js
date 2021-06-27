@@ -8,6 +8,6 @@ const authRoute = require('./routes/gateway')
 app.use('/', authRoute)
 
 //Running server and listening on port 3000
-const PORT = 5000
+const PORT = 3000
 app.listen(PORT, () => console.log(`Serveur running on port ${PORT}`))
 
