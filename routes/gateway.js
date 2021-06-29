@@ -269,41 +269,46 @@ router.get('/dev/:id', async function(req, res){
 
 
 //Board API
+router.get('/restaurants', async function(req, res){
+    console.log('/restaurants get')
+    const accesstoken = req.headers['authorization'].split(" ");
+    tokenapp = generateTokenApp()
+    try {resultats = await axios.get(pathboard+'/board/restaurants', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {console.log(error);res.status(400).send("error");} 
+});
+
+
 //OK
 router.get('/restaurantboard/:restaurantId', async function(req, res){
     console.log('/restaurantboard get')
-
     const accesstoken = req.headers['authorization'].split(" ");
-
     tokenapp = generateTokenApp()
     try {resultats = await axios.get(pathboard+'/board/restaurantboard/'+req.params.restaurantId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
 router.post('/menu', async function(req, res){
-    console.log('/menu post')
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbrestaurant = await Restaurant.findOne({ where: {userid: userid} });
-    const restaurantid = req.body.restaurantId;
+    const restaurantid = dbrestaurant.dataValues.id;
     if(dbrestaurant.id != restaurantid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-
+    req.body.restaurantId =  dbrestaurant.dataValues.id
     tokenapp = generateTokenApp()
     try {resultats = await axios.post(pathboard+'/board/menu', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
-router.put('/menu', async function(req, res){
+router.put('/menu/:id', async function(req, res){
     console.log('/menu put')
-
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
-    const dbmenu = await Menu.findOne({ where: {id: req.body.menuId} });
-    const dbrestaurant = await Restaurant.findOne({ where: {id: dbmenu.restaurantId} });
+    console.log(req.body)
+    const dbmenu = await Menu.findOne({ where: {id: req.body.id} });
+    const dbrestaurant = await Restaurant.findOne({ where: {id: dbmenu.dataValues.restaurantId} });
     if(dbrestaurant.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathboard+'/board/menu', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.put(pathboard+'/board/menu/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
@@ -328,49 +333,122 @@ router.post('/article', async function(req, res){
     const userid = await verifTokenController(accesstoken[1])
     const dbrestaurant = await Restaurant.findOne({ where: {userid: userid} });
     const restaurantid = req.body.restaurantId;
-    if(dbrestaurant.id != restaurantid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-
+    /*console.log(dbrestaurant.dataValues.id)
+    if(dbrestaurant.id != restaurantid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");*/
+    req.body.restaurantId =  dbrestaurant.dataValues.id
     tokenapp = generateTokenApp()
     try {resultats = await axios.post(pathboard+'/board/article', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
-router.put('/article', async function(req, res){
+router.put('/article/:id', async function(req, res){
     console.log('/article put')
-
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
-    const dbarticle = await Article.findOne({ where: {id: req.body.articleId} });
-    const dbrestaurant = await Restaurant.findOne({ where: {id: dbarticle.restaurantId} });
+    const dbarticle = await Article.findOne({ where: {id: req.body.id} });
+    const dbrestaurant = await Restaurant.findOne({ where: {id: dbarticle.dataValues.restaurantId} });
     if(dbrestaurant.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathboard+'/board/article', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.put(pathboard+'/board/article/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
 router.delete('/article/:articleId', async function(req, res){
     console.log('/article delete')
-
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbarticle = await Article.findOne({ where: {id: req.params.articleId} });
-    const dbrestaurant = await Restaurant.findOne({ where: {id: dbarticle.restaurantId} });
-    if(dbrestaurant.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-
+    console.log(dbarticle)
+    const dbrestaurant = await Restaurant.findOne({ where: {id: dbarticle.dataValues.restaurantId} });
+    if(dbrestaurant.dataValues.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
     tokenapp = generateTokenApp()
     try {resultats = await axios.delete(pathboard+'/board/article/'+req.params.articleId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 
+router.post('/order', async function(req, res){
+    console.log('/order post')
+    const accesstoken = req.headers['authorization'].split(" ");
+    const userid = await verifTokenController(accesstoken[1])
+    tokenapp = generateTokenApp()
+    req.body.userId = userid
+    try {resultats = await axios.post(pathorder+'/orders/order', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");} 
+});
 
+router.get('/order/user/:id', async function(req, res){
+    console.log('/order get')
+    const accesstoken = req.headers['authorization'].split(" ");
+    const userid = await verifTokenController(accesstoken[1])
+    tokenapp = generateTokenApp()
+    try {resultats = await axios.get(pathorder+'/orders/user/' + userid, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");} 
+});
 
+router.delete('/order/user/:id', async function(req, res){
+    console.log('/order get')
+    const accesstoken = req.headers['authorization'].split(" ");
+    const userid = await verifTokenController(accesstoken[1])
+    tokenapp = generateTokenApp()
+    // check si c'est sa commande
+    try {resultats = await axios.delete(pathorder+'/orders/user/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");} 
+});
 
+router.get('/order/restaurant/currentorder/:id', async function(req, res){
+    console.log('/order/restaurant/currentorder/:id get')
+    const accesstoken = req.headers['authorization'].split(" ");
+    const userid = await verifTokenController(accesstoken[1])
+    tokenapp = generateTokenApp()
+    //check userid possède restaurant
+    try {resultats = await axios.get(pathorder+'/orders/restaurant/current/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");} 
+});
+router.get('/order/restaurant/ordershistory/:id', async function(req, res){
+    console.log('/order/restaurant/ordershistory/:id get')
+    const accesstoken = req.headers['authorization'].split(" ");
+    const userid = await verifTokenController(accesstoken[1])
+    tokenapp = generateTokenApp()
+    //check userid possède restaurant
+    try {resultats = await axios.get(pathorder+'/orders/restaurant/history/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats.data); res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");} 
+});
+router.delete('/order/restaurant/ordershistory/:id', async function(req, res){
+    console.log('/order/restaurant/ordershistory/:id delete')
+    const accesstoken = req.headers['authorization'].split(" ");
+    const userid = await verifTokenController(accesstoken[1])
+    tokenapp = generateTokenApp()
+    //check userid possède restaurant
+    try {resultats = await axios.get(pathorder+'/orders/restaurant/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats.data); res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");} 
+});
 
+router.get('/order/deliveryman/:id', async function(req, res){
+    console.log('/order get')
+    const accesstoken = req.headers['authorization'].split(" ");
+    const userid = await verifTokenController(accesstoken[1])
+    tokenapp = generateTokenApp()
+    try {resultats = await axios.get(pathorder+'/orders/deliveryman/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");} 
+});
 
 //Order API
 //OK à tester
-router.put('/orders/statement/validate', async function(req, res){
+router.put('/orders/statement/restaurant', async function(req, res){
     console.log('/orders/statement/validate put')
 
     try {
@@ -384,76 +462,40 @@ router.put('/orders/statement/validate', async function(req, res){
     
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/validate/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.put(pathorder+'/orders/statement/validate/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); /*res.status(200).send(resultats.data)*/;}
     catch (error) {res.status(400).send("error");} 
 });
+
+
 //OK à tester
-router.put('/orders/statement/denied', async function(req, res){
-    console.log('/orders/statement/denied put')
 
-    try {
-        const accesstoken = req.headers['authorization'].split(" ");
-        const userid = await verifTokenController(accesstoken[1])
-        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-    } catch (error) {
-        res.status(200).send("Une erreur à été rencontrée !");
-    }
-
+router.put('/order/statement/validate/:id', async function(req, res){
+    const accesstoken = req.headers['authorization'].split(" ");
+    const userid = await verifTokenController(accesstoken[1])
+    const dborder = await Order.findOne({ where: {id: req.body.id} });
+    /*if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");*/
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/denied/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
+    try {resultats = await axios.put(pathorder+'/orders/statement/validate/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); 
+    console.log(resultats)
+    res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");
+    } 
 });
+
 //OK à tester
-router.put('/orders/statement/startingRealization', async function(req, res){
+router.put('/order/statement/update/:id', async function(req, res){
     console.log('/orders/statement/startingRealization put')
-
-    try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])
-        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-    } catch (error) {
-        res.status(200).send("Une erreur à été rencontrée !");
-    }
-    
+        const dborder = await Order.findOne({ where: {id: req.body.id} });
+        /*if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");*/
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/startingRealization/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
-});
-//OK à tester
-router.put('/orders/statement/waitingdelivery', async function(req, res){
-    console.log('/orders/statement/waitingdelivery put')
-
-    try {
-        const accesstoken = req.headers['authorization'].split(" ");
-        const userid = await verifTokenController(accesstoken[1])
-        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-    } catch (error) {
-        res.status(200).send("Une erreur à été rencontrée !");
-    }
-
-    tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/waitingdelivery/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
-});
-//OK à tester
-router.put('/orders/statement/indelivery', async function(req, res){
-    console.log('/orders/statement/indelivery put')
-
-    try {
-        const accesstoken = req.headers['authorization'].split(" ");
-        const userid = await verifTokenController(accesstoken[1])
-        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-    } catch (error) {
-        res.status(200).send("Une erreur à été rencontrée !");
-    }
-    
-    tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/indelivery', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
+    try {resultats = await axios.put(pathorder+'/orders/statement/update/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");} 
 });
 //OK à tester
 router.put('/orders/statement/delivered', async function(req, res){
@@ -473,5 +515,22 @@ router.put('/orders/statement/delivered', async function(req, res){
     catch (error) {res.status(400).send("error");} 
 });
 
+
+router.put('/orders/statement/deliveryMan', async function(req, res){
+    console.log('/orders/statement/denied put')
+
+    try {
+        const accesstoken = req.headers['authorization'].split(" ");
+        const userid = await verifTokenController(accesstoken[1])
+        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
+        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+    } catch (error) {
+        res.status(200).send("Une erreur à été rencontrée !");
+    }
+
+    tokenapp = generateTokenApp()
+    try {resultats = await axios.put(pathorder+'/orders/statement/denied/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {res.status(400).send("error");} 
+});
 
 module.exports = router;
