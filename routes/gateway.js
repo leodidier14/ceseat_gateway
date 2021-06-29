@@ -43,7 +43,7 @@ router.post('/login', async function(req, res){
         res.status(200).send(result);
         } catch (error) {console.log(error)}
     }
-    catch (error) {res.status(400).send("error");}
+    catch (error) {res.status(400).send(error);}
 });
 //Logout user
 router.post('/logout', async function(req, res){
@@ -448,7 +448,7 @@ router.get('/order/deliveryman/:id', async function(req, res){
 
 //Order API
 //OK à tester
-router.put('/orders/statement/restaurant', async function(req, res){
+/*router.put('/orders/statement/restaurant', async function(req, res){
     console.log('/orders/statement/validate put')
 
     try {
@@ -462,9 +462,9 @@ router.put('/orders/statement/restaurant', async function(req, res){
     
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/validate/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); /*res.status(200).send(resultats.data)*/;}
+    try {resultats = await axios.put(pathorder+'/orders/statement/validate/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
-});
+});*/
 
 
 //OK à tester
