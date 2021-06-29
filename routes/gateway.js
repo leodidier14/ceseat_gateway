@@ -284,7 +284,7 @@ router.get('/restaurantboard/:restaurantId', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
     try {resultats = await axios.get(pathboard+'/board/restaurantboard/'+req.params.restaurantId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
+    catch (error) { console.log(error);res.status(400).send("error");} 
 });
 //OK à tester
 router.post('/menu', async function(req, res){
