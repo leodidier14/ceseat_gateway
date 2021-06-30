@@ -17,7 +17,7 @@ const apiinf = require('./models/apiinfo')
 var pjson = require('./package.json');
 console.log("name : " + pjson.name);
 console.log("version : " + pjson.version);
-const apiinfos = apiinf.findOneAndUpdate({name: pjson.name, port:process.env.PORT}, {version : pjson.version}, {upsert: true}).exec()
+//const apiinfos = apiinf.findOneAndUpdate({name: pjson.name, port:process.env.PORT}, {version : pjson.version}, {upsert: true}).exec()
 //################################################//
 
 app.use((req,res,next) =>{
@@ -26,6 +26,7 @@ app.use((req,res,next) =>{
       })
     next()
 })
+
 
 //Import routes
 const authRoute = require('./routes/gateway')

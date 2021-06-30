@@ -20,13 +20,45 @@ const {verifTokenController} = require('../controllers/tokenController')
 const {verifTokenDevController} = require('../controllers/tokenDevController')
 const {generateTokenApp} = require('../controllers/tokenAppController');
 const { token } = require('morgan');
+const apiinf = require('../models/apiinfo')
 
-const pathauth = "http://localhost:3001/api"   //Auth API
-const pathaccount = "http://localhost:3002/api"   //Account API
-const pathorder = "http://localhost:3003/api"   //Order API
-const pathboard = "http://localhost:3004/api"   //Board API
-const pathstats = "http://localhost:3005/api"   //Stat API
-const pathdev = "http://localhost:3006/api"   //Dev API
+
+
+var serverList = {}
+
+async function  setServerList() {
+
+    var serverTemp = await apiinf.find().exec()
+
+    serverTemp.forEach( (server) => {
+        serviceName = ''
+        if(server.path != null){
+            if(serverList[server.name] == null ){
+                serverList[server.name] = []
+            } 
+            if(!serverList[server.name].includes(serviceName)){
+                try { axios.get('http://localhost:' + server.port + server.path+'available',  {headers: {'tokenapp': `${generateTokenApp()}`}}).then(
+                    res => {
+                        serviceName = 'http://localhost:' + server.port + server.path
+                        if(res.data){
+                            if(!serverList[server.name].includes(serviceName)){
+                            serverList[server.name].push(serviceName)
+                            }
+                        } else {
+                            apiinf.deleteOne({port:server.port}).exec()
+                        }
+                    }
+                );
+                } catch(error) {
+                    console.log(error)
+                    apiinf.deleteOne({port:server.port}).exec()
+                }
+            }
+        }
+    })
+}
+setServerList()
+
 
 
 
@@ -34,11 +66,13 @@ const pathdev = "http://localhost:3006/api"   //Dev API
 //Login user
 router.post('/login', async function(req, res){
     tokenapp = generateTokenApp()
+    console.log(serverList)
     try {
-        resultats = await axios.post(pathauth+'/auth/login', req.body, {headers: {'tokenapp': `${tokenapp}`}}); 
+        path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
+        resultats = await axios.post(path+'login', req.body, {headers: {'tokenapp': `${tokenapp}`}}).catch(err => console.log(err)); 
         try {
-            role = await axios.get(pathaccount+'/account/getrole/'+resultats.data.userId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${resultats.data.token}`}});
-            console.log(role)
+            path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+            role = await axios.get(path+'getrole/'+resultats.data.userId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${resultats.data.token}`}}).catch(err => console.log(err));     
             let result = {
                 userId:resultats.data.userId,
                 token:resultats.data.token,
@@ -54,35 +88,45 @@ router.post('/login', async function(req, res){
 router.post('/logout', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathauth+'/auth/logout', req.body, {headers: {'tokenapp': `${tokenapp}` , 'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
+    try {resultats = await axios.post(path+'logout', req.body, {headers: {'tokenapp': `${tokenapp}` , 'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {console.log(error); res.status(400).send("error");}
+});
+//refresh serverList
+router.get('/refresh', async function(req, res){
+    setServerList()
 });
 //Check accesstoken
 router.post('/accesstoken', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathauth+'/auth/accesstoken', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
+    try {resultats = await axios.post(path+'accesstoken', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");}
 });
 
 router.post('/dev-login', async function(req, res){
     console.log('/dev-login')
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathauth+'/auth/dev/login', req.body, {headers: {'tokenapp': `${tokenapp}`}}); console.log(resultats) ;res.status(200).send(resultats.data);}
+    path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
+    try {resultats = await axios.post(path+'dev/login', req.body, {headers: {'tokenapp': `${tokenapp}`}}); console.log(resultats) ;res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");}
 });
 //Logout user
 router.post('/dev-logout', async function(req, res){
+    console.log('ici')
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathauth+'/auth/dev/logout', req.body, {headers: {'tokenapp': `${tokenapp}` , 'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
+    try {resultats = await axios.post(path+'dev/logout', req.body, {headers: {'tokenapp': `${tokenapp}` , 'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");}
 });
 //Check accesstoken
 router.post('/dev-accesstoken', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathauth+'/auth/dev/accesstoken', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
+    try {resultats = await axios.post(path+'dev/accesstoken', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");}
 });
 
@@ -96,7 +140,8 @@ router.post('/dev-accesstoken', async function(req, res){
 router.post('/user', async function(req, res){
     console.log('/user post') 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathaccount+'/account/user', req.body, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.post(path+'user', req.body, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Modify user
@@ -104,7 +149,8 @@ router.put('/user/:id', async function(req, res){
     console.log('/user put');
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathaccount+'/account/user/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.put(path+'user/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Delete user YES
@@ -113,19 +159,21 @@ router.delete('/user/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     if(userid != req.params.id) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-
     tokenapp = generateTokenApp()
-    try {resultats = await axios.delete(pathaccount+'/account/user/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.delete(path+'user/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Info user
 router.get('/user/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
+    
     if(userid != req.params.id) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathaccount+'/account/user/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.get(path+'user/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Create restaurant
@@ -134,8 +182,9 @@ router.post('/restaurant', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
 
     tokenapp = generateTokenApp()
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
     try {resultats =
-         await axios.post(pathaccount+'/account/restaurant', req.body, 
+         await axios.post(path+'restaurant', req.body, 
                             {headers: 
                                 {'tokenapp': `${tokenapp}` ,
                                 'Authorization': `${accesstoken[1]}`}
@@ -150,7 +199,8 @@ router.put('/restaurant/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathaccount+'/account/restaurant/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.put(path+'restaurant/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {console.log(error)
         res.status(400).send("error");} 
 });
@@ -164,7 +214,8 @@ router.delete('/restaurant/:id', async function(req, res){
     if (dbrestaurant.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.delete(pathaccount+'/account/restaurant/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.delete(path+'restaurant/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Infos restaurant
@@ -177,7 +228,8 @@ router.get('/restaurant/:id', async function(req, res){
     if (dbrestaurant.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathaccount+'/account/restaurant/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.get(path+'restaurant/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Create deliveryman
@@ -186,7 +238,8 @@ router.post('/deliveryman', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathaccount+'/account/deliveryman', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.post(path+'deliveryman', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) { console.log(error); res.status(400).send("error");} 
 });
 //Update deliveryman
@@ -195,7 +248,8 @@ router.put('/deliveryman/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathaccount+'/account/deliveryman/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); 
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.put(path+'deliveryman/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); 
     console.log(resultats)
     res.status(200).send(resultats.data);}
     catch (error) {console.log(error); res.status(400).send("error");} 
@@ -209,7 +263,8 @@ router.delete('/deliveryman/:id', async function(req, res){
     if (dbdeliveryman.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.delete(pathaccount+'/account/deliveryman/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.delete(path+'deliveryman/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Infos deliveryman
@@ -219,11 +274,11 @@ router.get('/deliveryman/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     const dbdeliveryman = await Deliveryman.findOne({ where: {id: req.params.id} });
-    console.log(dbdeliveryman)
     if (dbdeliveryman.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathaccount+'/account/deliveryman/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.get(path+'deliveryman/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 
@@ -231,16 +286,17 @@ router.post('/dev', async function(req, res){
     console.log('/dev post')
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathaccount+'/account/dev', req.body, {headers: {'tokenapp': `${tokenapp}`}}); console.log(resultats);res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.post(path+'dev', req.body, {headers: {'tokenapp': `${tokenapp}`}}); console.log(resultats);res.status(200).send(resultats.data);}
     catch (error) {console.log(error);res.status(400).send("error");} 
 });
 //Modify user
 router.put('/dev/:id', async function(req, res){
-    console.log('/dev put')
-
+    console.log(req.body)
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathaccount+'/account/dev/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.put(path+'dev/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Delete user YES
@@ -252,7 +308,8 @@ router.delete('/dev/:id', async function(req, res){
     if(userid != req.params.id) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.delete(pathaccount+'/account/dev/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.delete(path+'dev/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //Delete user YES
@@ -265,7 +322,8 @@ router.get('/dev/:id', async function(req, res){
     if(userid != req.params.id) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathaccount+'/account/dev/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}});console.log(resultats.data); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+    try {resultats = await axios.get(path+'dev/'+req.params.id, {headers: {'tokenapp': `${tokenapp}`}});console.log(resultats.data); res.status(200).send(resultats.data);}
     catch (error) {console.log(error);res.status(400).send("error");} 
 });
 
@@ -278,7 +336,8 @@ router.get('/restaurants', async function(req, res){
     console.log('/restaurants get')
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathboard+'/board/restaurants', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-card'][Math.floor(Math.random() * serverList['ceseat-card'].length)]
+    try {resultats = await axios.get(path +'restaurants', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {console.log(error);res.status(400).send("error");} 
 });
 
@@ -288,7 +347,8 @@ router.get('/restaurantboard/:restaurantId', async function(req, res){
     console.log('/restaurantboard get')
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathboard+'/board/restaurantboard/'+req.params.restaurantId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-card'][Math.floor(Math.random() * serverList['ceseat-card'].length)]
+    try {resultats = await axios.get(path+'restaurantboard/'+req.params.restaurantId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) { console.log(error);res.status(400).send("error");} 
 });
 //OK à tester
@@ -300,7 +360,8 @@ router.post('/menu', async function(req, res){
     if(dbrestaurant.id != restaurantid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
     req.body.restaurantId =  dbrestaurant.dataValues.id
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathboard+'/board/menu', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-card'][Math.floor(Math.random() * serverList['ceseat-card'].length)]
+    try {resultats = await axios.post(path+'menu', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
@@ -313,7 +374,8 @@ router.put('/menu/:id', async function(req, res){
     const dbrestaurant = await Restaurant.findOne({ where: {id: dbmenu.dataValues.restaurantId} });
     if(dbrestaurant.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathboard+'/board/menu/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-card'][Math.floor(Math.random() * serverList['ceseat-card'].length)]
+    try {resultats = await axios.put(path+'menu/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
@@ -327,7 +389,8 @@ router.delete('/menu/:menuId', async function(req, res){
     if(dbrestaurant.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.delete(pathboard+'/board/menu/'+req.params.menuId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-card'][Math.floor(Math.random() * serverList['ceseat-card'].length)]
+    try {resultats = await axios.delete(path+'menu/'+req.params.menuId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
@@ -342,7 +405,8 @@ router.post('/article', async function(req, res){
     if(dbrestaurant.id != restaurantid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");*/
     req.body.restaurantId =  dbrestaurant.dataValues.id
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathboard+'/board/article', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-card'][Math.floor(Math.random() * serverList['ceseat-card'].length)]
+    try {resultats = await axios.post(path+'article', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
@@ -354,7 +418,8 @@ router.put('/article/:id', async function(req, res){
     const dbrestaurant = await Restaurant.findOne({ where: {id: dbarticle.dataValues.restaurantId} });
     if(dbrestaurant.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathboard+'/board/article/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-card'][Math.floor(Math.random() * serverList['ceseat-card'].length)]
+    try {resultats = await axios.put(path+'article/'+ req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 //OK à tester
@@ -367,7 +432,8 @@ router.delete('/article/:articleId', async function(req, res){
     const dbrestaurant = await Restaurant.findOne({ where: {id: dbarticle.dataValues.restaurantId} });
     if(dbrestaurant.dataValues.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
     tokenapp = generateTokenApp()
-    try {resultats = await axios.delete(pathboard+'/board/article/'+req.params.articleId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-card'][Math.floor(Math.random() * serverList['ceseat-card'].length)]
+    try {resultats = await axios.delete(path+'article/'+req.params.articleId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 
@@ -377,7 +443,8 @@ router.post('/order', async function(req, res){
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
     req.body.userId = userid
-    try {resultats = await axios.post(pathorder+'/orders/order', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.post(path+'order', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -388,7 +455,8 @@ router.get('/order/user/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathorder+'/orders/user/' + userid, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.get(path+'user/' + userid, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -400,7 +468,8 @@ router.delete('/order/user/:id', async function(req, res){
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
     // check si c'est sa commande
-    try {resultats = await axios.delete(pathorder+'/orders/user/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.delete(path+'user/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -412,7 +481,8 @@ router.get('/order/restaurant/currentorder/:id', async function(req, res){
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
     //check userid possède restaurant
-    try {resultats = await axios.get(pathorder+'/orders/restaurant/current/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats);res.status(200).send(resultats.data);}
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.get(path+'restaurant/current/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats);res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -423,7 +493,8 @@ router.get('/order/restaurant/ordershistory/:id', async function(req, res){
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
     //check userid possède restaurant
-    try {resultats = await axios.get(pathorder+'/orders/restaurant/history/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats.data); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.get(path+'restaurant/history/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats.data); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -434,8 +505,8 @@ router.delete('/order/restaurant/ordershistory/:id', async function(req, res){
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
     //check userid possède restaurant
-    console.log(pathorder+'/orders/restaurant/' + req.params.id)
-    try {resultats = await axios.delete(pathorder+'/orders/restaurant/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats.data); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.delete(path+'restaurant/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}});console.log(resultats.data); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -446,7 +517,8 @@ router.get('/order/deliveryman/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathorder+'/orders/deliveryman/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.get(path+'deliveryman/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -481,7 +553,8 @@ router.put('/order/statement/validate/:id', async function(req, res){
     const dborder = await Order.findOne({ where: {id: req.body.id} });
     /*if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");*/
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/validate/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); 
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.put(path+'statement/validate/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); 
     console.log(resultats)
     res.status(200).send(resultats.data);}
     catch (error) {
@@ -498,7 +571,8 @@ router.put('/order/statement/update/:id', async function(req, res){
         const dborder = await Order.findOne({ where: {id: req.body.id} });
         /*if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");*/
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/update/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.put(path+'statement/update/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -517,7 +591,8 @@ router.put('/orders/statement/delivered', async function(req, res){
     }
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/delivered', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.put(path+'statement/delivered', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 
@@ -535,7 +610,8 @@ router.put('/orders/statement/deliveryMan', async function(req, res){
     }
 
     tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/denied/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+    try {resultats = await axios.put(path+'/statement/denied/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 
@@ -545,7 +621,8 @@ router.get('/stats/components/', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathstats+'/statistics/components/stats/', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-statistics'][Math.floor(Math.random() * serverList['ceseat-statistics'].length)]
+    try {resultats = await axios.get(path+'components/stats/', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -556,7 +633,8 @@ router.get('/stats/restaurant/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathstats+'/statistics/restaurant/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-statistics'][Math.floor(Math.random() * serverList['ceseat-statistics'].length)]
+    try {resultats = await axios.get(path+'restaurant/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -567,7 +645,8 @@ router.get('/devTools/logs/connexion/', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathdev+'/devtools/logs/connection/', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-devtools'][Math.floor(Math.random() * serverList['ceseat-devtools'].length)]
+    try {resultats = await axios.get(path+'logs/connection/', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -578,12 +657,24 @@ router.get('/devTools/logs/components/', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathdev+'/devtools/logs/components/', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-devtools'][Math.floor(Math.random() * serverList['ceseat-devtools'].length)]
+    try {resultats = await axios.get(path+'logs/components/', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
 });
-
+router.post('/devTools/logs/components/', async function(req, res){
+    console.log('/dev/logs/components/ post')
+    const accesstoken = req.headers['authorization'].split(" ");
+    const userid = await verifTokenDevController(accesstoken[1])
+    console.log(userid)
+    req.body.userId = userid
+    path = serverList['ceseat-devtools'][Math.floor(Math.random() * serverList['ceseat-devtools'].length)]
+    try {resultats = await axios.post(path+'logs/components/',req.body, {headers: {'tokenapp': `${generateTokenApp()}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");} 
+});
 
 
 router.get('/devTools/components/', async function(req, res){
@@ -591,7 +682,8 @@ router.get('/devTools/components/', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathdev+'/devtools/components/', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-devtools'][Math.floor(Math.random() * serverList['ceseat-devtools'].length)]
+    try {resultats = await axios.get(path+'components/', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -602,7 +694,8 @@ router.post('/devTools/components/', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
-    try {resultats = await axios.post(pathdev+'/devtools/components/',req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-devtools'][Math.floor(Math.random() * serverList['ceseat-devtools'].length)]
+    try {resultats = await axios.post(path+'components/',req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
@@ -613,7 +706,8 @@ router.delete('/devTools/components/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     const userid = await verifTokenController(accesstoken[1])
     tokenapp = generateTokenApp()
-    try {resultats = await axios.delete(pathdev+'/devtools/components/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    path = serverList['ceseat-devtools'][Math.floor(Math.random() * serverList['ceseat-devtools'].length)]
+    try {resultats = await axios.delete(path+'components/'+req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {
         console.log(error)
         res.status(400).send("error");} 
