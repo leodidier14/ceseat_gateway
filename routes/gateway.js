@@ -551,6 +551,17 @@ router.get('/stats/components/', async function(req, res){
         res.status(400).send("error");} 
 });
 
+router.get('/stats/restaurant/:id', async function(req, res){
+    console.log('/stats/components/ get')
+    const accesstoken = req.headers['authorization'].split(" ");
+    const userid = await verifTokenController(accesstoken[1])
+    tokenapp = generateTokenApp()
+    try {resultats = await axios.get(pathstats+'/statistics/restaurant/' + req.params.id, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    catch (error) {
+        console.log(error)
+        res.status(400).send("error");} 
+});
+
 router.get('/devTools/logs/connexion/', async function(req, res){
     console.log('/dev/logs/connexion/ get')
     const accesstoken = req.headers['authorization'].split(" ");
@@ -607,26 +618,5 @@ router.delete('/devTools/components/:id', async function(req, res){
         console.log(error)
         res.status(400).send("error");} 
 });
-/*
-router.get('/dev/logs/components/', async function(req, res){
-    console.log('/dev/logs/connexion/ get')
-    const accesstoken = req.headers['authorization'].split(" ");
-    const userid = await verifTokenController(accesstoken[1])
-    tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathdev+'/devtools/components/logs/', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {
-        console.log(error)
-        res.status(400).send("error");} 
-});
 
-router.get('/dev/logs/components/', async function(req, res){
-    console.log('/dev/logs/connexion/ get')
-    const accesstoken = req.headers['authorization'].split(" ");
-    const userid = await verifTokenController(accesstoken[1])
-    tokenapp = generateTokenApp()
-    try {resultats = await axios.get(pathdev+'/devtools/components/logs/', {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {
-        console.log(error)
-        res.status(400).send("error");} 
-});*/
 module.exports = router;
