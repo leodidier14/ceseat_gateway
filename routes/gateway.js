@@ -30,7 +30,7 @@ async function  setServerList() {
 
     var serverTemp = await apiinf.find().exec()
 
-    serverTemp.forEach( (server) => {
+    await serverTemp.forEach( (server) => {
         serviceName = ''
         if(server.path != null){
             if(serverList[server.name] == null ){
@@ -55,6 +55,8 @@ async function  setServerList() {
             }
         }
     })
+    console.log(serverList)
+
 }
 setServerList()
 
@@ -88,6 +90,7 @@ router.put('/app/user/:id', async function(req, res){
 //Auth API
 //Login user
 router.post('/login', async function(req, res){
+    console.log(serverList)
     tokenapp = generateTokenApp()
     try {
         path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
