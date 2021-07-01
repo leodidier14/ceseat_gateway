@@ -96,13 +96,13 @@ router.post('/login', async function(req, res){
         path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
         resultats = await axios.post(path+'login', req.body, {headers: {'tokenapp': `${tokenapp}`}}).catch(err => res.status(400).send(err)); 
         
-        /*path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+        path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
         role = await axios.get(path+'getrole/'+resultats.data.userId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${resultats.data.token}`}}).catch(err => res.status(400).send(err));     
         let result = {
             userId:resultats.data.userId,
             token:resultats.data.token,
             role:role.data
-        }*/
+        }
         res.status(200).send(resultats.data.token);
     }
     catch (error) {res.status(400).send(error);}
