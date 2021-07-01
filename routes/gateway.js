@@ -37,9 +37,9 @@ async function  setServerList() {
                 serverList[server.name] = []
             } 
             if(!serverList[server.name].includes(serviceName)){
-                try { axios.get('http://localhost:' + server.port + server.path+'available',  {headers: {'tokenapp': `${generateTokenApp()}`}}).then(
+                try { axios.get('http://172.16.44.43:' + server.port + server.path+'available',  {headers: {'tokenapp': `${generateTokenApp()}`}}).then(
                     res => {
-                        serviceName = 'http://localhost:' + server.port + server.path
+                        serviceName = 'http://172.16.44.43:' + server.port + server.path
                         if(res.data){
                             if(!serverList[server.name].includes(serviceName)){
                             serverList[server.name].push(serviceName)
@@ -90,14 +90,14 @@ router.post('/login', async function(req, res){
         path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
         resultats = await axios.post(path+'login', req.body, {headers: {'tokenapp': `${tokenapp}`}}).catch(err => res.status(400).send(err)); 
         
-        path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+        /*path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
         role = await axios.get(path+'getrole/'+resultats.data.userId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${resultats.data.token}`}}).catch(err => res.status(400).send(err));     
         let result = {
             userId:resultats.data.userId,
             token:resultats.data.token,
             role:role.data
-        }
-        res.status(200).send(result);
+        }*/
+        res.status(200).send(resultats.data.token);
     }
     catch (error) {res.status(400).send(error);}
 });
@@ -536,7 +536,6 @@ router.put('/orders/statement/deliverymanaccept/:id', async function(req, res){
     try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])
-        console.log(userid)
         const dbdeliveryman = await Deliveryman.findOne({ where: {userId: userid} });
         req.body.deliverymanId = dbdeliveryman.dataValues.id
         tokenapp = generateTokenApp()
