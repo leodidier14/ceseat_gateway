@@ -1,3 +1,5 @@
+const { Bit } = require('mssql');
+const { BOOLEAN } = require('sequelize');
 var Sequelize = require('sequelize')
 var sequelize = require('../database')
 
@@ -18,7 +20,8 @@ var User = sequelize.define("User", {
     phoneNumber: Sequelize.STRING,
     userType: Sequelize.STRING,
     refreshtoken: Sequelize.TEXT,
-    sponsorshipLink: Sequelize.STRING
+    sponsorshipLink: Sequelize.STRING,
+    isSuspended: Sequelize.BOOLEAN
 });
 
 module.exports = User;

@@ -7,7 +7,7 @@ const path = require('path')
 require('dotenv').config({ path: path.resolve(__dirname, '.env') })
 const mongoose = require('mongoose');
 //Connect to db
-mongoose.connect(process.env.DB_MONGO_CONNECT, {useNewUrlParser: true}, () =>
+mongoose.connect(process.env.DB_MONGO_CONNECT, {useNewUrlParser: true, useUnifiedTopology:true}, () =>
     console.log("connected to database")
 );
 const requestLog = require('./models/requestLog')
