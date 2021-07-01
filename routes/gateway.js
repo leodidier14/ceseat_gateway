@@ -55,8 +55,6 @@ async function  setServerList() {
             }
         }
     })
-    console.log(serverList)
-
 }
 setServerList()
 
@@ -103,7 +101,7 @@ router.post('/login', async function(req, res){
             token:resultats.data.token,
             role:role.data
         }
-        res.status(200).send(resultats.data.token);
+        res.status(200).send(result);
     }
     catch (error) {res.status(400).send(error);}
 });
