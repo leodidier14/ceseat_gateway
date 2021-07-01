@@ -89,16 +89,15 @@ router.post('/login', async function(req, res){
     try {
         path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
         resultats = await axios.post(path+'login', req.body, {headers: {'tokenapp': `${tokenapp}`}}).catch(err => res.status(400).send(err)); 
-        try {
-            path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
-            role = await axios.get(path+'getrole/'+resultats.data.userId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${resultats.data.token}`}}).catch(err => res.status(400).send(err));     
-            let result = {
-                userId:resultats.data.userId,
-                token:resultats.data.token,
-                role:role.data
-            }
+        
+        path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
+        role = await axios.get(path+'getrole/'+resultats.data.userId, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${resultats.data.token}`}}).catch(err => res.status(400).send(err));     
+        let result = {
+            userId:resultats.data.userId,
+            token:resultats.data.token,
+            role:role.data
+        }
         res.status(200).send(result);
-        } catch (error) {res.status(400).send(error);}
     }
     catch (error) {res.status(400).send(error);}
 });
@@ -108,7 +107,8 @@ router.post('/logout', async function(req, res){
     tokenapp = generateTokenApp()
     path = serverList['ceseat-auth'][Math.floor(Math.random() * serverList['ceseat-auth'].length)]
     try {resultats = await axios.post(path+'logout', req.body, {headers: {'tokenapp': `${tokenapp}` , 'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) { res.status(400).send("error");}
+        
+        catch (error) {console.log(error); res.status(400).send("error");}
 });
 //refresh serverList
 router.get('/refresh', async function(req, res){
@@ -536,13 +536,14 @@ router.put('/orders/statement/deliverymanaccept/:id', async function(req, res){
     try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])
+        console.log(userid)
         const dbdeliveryman = await Deliveryman.findOne({ where: {userId: userid} });
         req.body.deliverymanId = dbdeliveryman.dataValues.id
         tokenapp = generateTokenApp()
         path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
-        try {resultats = await axios.put(path+'statement/deliveryman/validate/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-        catch (error) { res.status(400).send("error");} 
+        resultats = await axios.put(path+'statement/deliveryman/validate/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);
     } catch (error) {
+
         res.status(400).send("Une erreur à été rencontrée !");
     }
     
