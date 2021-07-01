@@ -546,24 +546,6 @@ router.get('/order/deliveryman/:id', async function(req, res){
 });
 
 //Order API
-//OK à tester
-/*router.put('/orders/statement/restaurant', async function(req, res){
-    console.log('/orders/statement/validate put')
-
-    try {
-        const accesstoken = req.headers['authorization'].split(" ");
-        const userid = await verifTokenController(accesstoken[1])
-        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-    } catch (error) {
-        res.status(200).send("Une erreur à été rencontrée !");
-    }
-    
-
-    tokenapp = generateTokenApp()
-    try {resultats = await axios.put(pathorder+'/orders/statement/validate/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
-});*/
 
 
 //OK à tester
@@ -599,41 +581,39 @@ router.put('/order/statement/update/:id', async function(req, res){
         res.status(400).send("error");} 
 });
 //OK à tester
-router.put('/orders/statement/delivered', async function(req, res){
+router.put('/orders/statement/delivered/:id', async function(req, res){
     console.log('/orders/statement/delivered put')
-
     try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])
-        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
-    } catch (error) {
-        res.status(200).send("Une erreur à été rencontrée !");
-    }
-
-    tokenapp = generateTokenApp()
+        const dborder = await Order.findOne({ where: {id: req.body.id} });
+        tokenapp = generateTokenApp()
     path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
-    try {resultats = await axios.put(path+'statement/delivered', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.put(path+'statement/delivered/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
+    } catch (error) {
+        res.status(400).send("Une erreur à été rencontrée !");
+    }
 });
 
 
-router.put('/orders/statement/deliveryMan', async function(req, res){
-    console.log('/orders/statement/denied put')
-
+router.put('/orders/statement/deliverymanaccept/:id', async function(req, res){
+    console.log('/orders/statement/deliverymanaccept/ put')
     try {
         const accesstoken = req.headers['authorization'].split(" ");
         const userid = await verifTokenController(accesstoken[1])
-        const dborder = await Order.findOne({ where: {id: req.body.orderId} });
-        if(dborder.userid != userid) return res.status(200).send("Vous ne pouvez pas effectuer ceci");
+        const dbdeliveryman = await Deliveryman.findOne({ where: {userId: userid} });
+        req.body.deliverymanId = dbdeliveryman.dataValues.id
+        tokenapp = generateTokenApp()
+        path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
+        try {resultats = await axios.put(path+'statement/deliveryman/validate/'+req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+        catch (error) { console.log(error);res.status(400).send("error");} 
     } catch (error) {
-        res.status(200).send("Une erreur à été rencontrée !");
+        console.log(error)
+        res.status(400).send("Une erreur à été rencontrée !");
     }
-
-    tokenapp = generateTokenApp()
-    path = serverList['ceseat-commands'][Math.floor(Math.random() * serverList['ceseat-commands'].length)]
-    try {resultats = await axios.put(path+'/statement/denied/', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
-    catch (error) {res.status(400).send("error");} 
+    
+    
 });
 
 
