@@ -76,11 +76,11 @@ router.get('/app/user', async function(req, res){
     catch (error) {res.status(400).send("error");} 
 });
 
-router.put('/app/user', async function(req, res){
+router.put('/app/user/:id', async function(req, res){
     const accesstoken = req.headers['authorization'].split(" ");
     tokenapp = generateTokenApp()
     path = serverList['ceseat-account'][Math.floor(Math.random() * serverList['ceseat-account'].length)]
-    try {resultats = await axios.put(path+'app/user', req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
+    try {resultats = await axios.put(path+'app/user/' + req.params.id, req.body, {headers: {'tokenapp': `${tokenapp}` ,'Authorization': `${accesstoken[1]}`}}); res.status(200).send(resultats.data);}
     catch (error) {res.status(400).send("error");} 
 });
 
